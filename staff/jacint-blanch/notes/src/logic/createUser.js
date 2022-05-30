@@ -1,7 +1,7 @@
 const { validateStringNotEmptyOrBlank, validateUsername, validatePassword, validateFunction } = require('../validators')
 const { readdir, readFile, writeFile } = require('fs')
 const { ConflictError } = require('../errors')
-const User = require('../models/User')
+const { User } = require('../models')
 const { createId } = require('../utils')
 
 function createUser(name, username, password, callback) {

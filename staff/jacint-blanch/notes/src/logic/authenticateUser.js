@@ -1,8 +1,6 @@
 const { validateUsername, validatePassword, validateFunction } = require('../validators')
-const { readdir, readFile, writeFile } = require('fs')
+const { readdir, readFile } = require('fs')
 const { AuthError } = require('../errors')
-const User = require('../models/User')
-
 
 function authenticateUser(username, password, callback) {
     validateUsername(username)

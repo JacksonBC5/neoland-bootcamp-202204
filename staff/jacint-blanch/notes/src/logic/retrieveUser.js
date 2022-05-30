@@ -2,12 +2,12 @@ const { validateStringNotEmptyNoSpaces, validateFunction } = require('../validat
 const { readFile } = require('fs')
 const { NotFoundError } = require('../errors')
 
-function retrieveUser(userId, callback){
+function retrieveUser(userId, callback) {
     validateStringNotEmptyNoSpaces(userId)
     validateFunction(callback, 'callback')
 
-    readFile(`./db/users/${userId}.json`,`utf8`, (error, json) => {
-        if(error) return callback(new NotFoundError(`user with id ${userId} not found`))
+    readFile(`./db/users/${userId}.json`, 'utf8', (error, json) => {
+        if (error) return callback(new NotFoundError(`user with id ${userId} not found`))
 
         const user = JSON.parse(json)
 

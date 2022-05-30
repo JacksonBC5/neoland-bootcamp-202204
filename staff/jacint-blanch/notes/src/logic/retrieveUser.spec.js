@@ -1,4 +1,4 @@
-const { readdir, unlink, writeFile, readFile } = require('fs')
+const { readdir, unlink, writeFile } = require('fs')
 const retrieveUser = require('./retrieveUser')
 const { expect } = require('chai')
 const { User } = require('../models')
@@ -140,39 +140,4 @@ describe('retrieveUser', () => {
     })
 
     // TODO unhappy test cases
-
-//     it('fails on inexisting user', done => {
-//         readFile(`./db/users`, (error, files) => {
-//             if (error) return done(error)
-
-//             if (files.length)
-//                 files.forEach(file => {
-//                     unlink(`./db/users/${file}`, error => {
-//                         if (!_error) {
-//                             if (error) return done(_error = error)
-
-//                             count++
-
-//                             if (count == files.length) {
-//                                 const user = new User('Maria Doe', 'mariadoe', '123123123')
-
-//                                 const json = JSON.stringify(user)
-
-//                                 const _userId = createId()
-
-//                                 writeFile(`./db/users/${_userId}.json`, json, error => {
-//                                     if (error) return done(error)
-
-//                                     const userId = _userId + '-wrong'
-
-//                                     retrieveUser(userId, (error, data) => {
-//                                         expect(error).to.be.exist
-//                                         expect(error).to.be.instanceOf(NotFoundError)
-//                                         expect(error.message).to.equal(`user with id ${userId} not found`)
-
-//                                         expect(data).to.be.undefined
-
-//                                         done()
-//                                     })
-
 })
