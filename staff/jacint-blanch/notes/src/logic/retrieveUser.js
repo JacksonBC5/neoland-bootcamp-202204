@@ -1,20 +1,22 @@
-const { validateStringNotEmptyNoSpaces, validateFunction } = require('../validators')
-const { readFile } = require('fs')
+const { User } = require('../models')
 const { NotFoundError } = require('../errors')
+const { validateStringNotEmptyNoSpaces } = require('../validators')
 
-function retrieveUser(userId, callback) {
-    validateStringNotEmptyNoSpaces(userId)
-    validateFunction(callback, 'callback')
+function retrieveUser(userId) {
+    debugger
+    validateStringNotEmptyNoSpaces(userId, 'user id')
 
-    readFile(`./db/users/${userId}.json`, 'utf8', (error, json) => {
-        if (error) return callback(new NotFoundError(`user with id ${userId} not found`))
+    return User.findById(userId).lean()
+        .then(user => {
+            if (!user)
+                throw new NotFoundError(`user with id ${userId} does not exist`)
 
-        const user = JSON.parse(json)
+            delete user._id
+            delete user.__v
+            delete user.password
 
-        delete user.password
-
-        callback(null, user)
-    })
+            return user
+        })
 }
 
 module.exports = retrieveUser

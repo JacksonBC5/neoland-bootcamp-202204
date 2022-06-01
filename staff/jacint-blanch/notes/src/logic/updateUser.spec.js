@@ -1,10 +1,10 @@
 const { connect, disconnect, Types: { ObjectId } } = require('mongoose')
 const { User } = require('../models')
-const { AuthError } = require('../errors')
-const retrieveUser = require('./retrieveUser')
+const { NotFoundError } = require('../errors')
+const updateUser = require('./updateUser')
 const { expect } = require('chai')
 
-describe('retrieveUser', () => {
+describe('updateUser', () => {
     before(() => connect('mongodb://localhost:27017/notes-db-test'))
 
     beforeEach(() => User.deleteMany())
@@ -18,22 +18,26 @@ describe('retrieveUser', () => {
             return user.save()
         })
 
-        it('succeeds on correct user id', () =>
-            retrieveUser(user.id)
+        it('succeeds on correct user data', () =>
+            updateUser(user.id, 'Pepe Gayo', 26, 'pepe@gayo.com', '+34123123123')
+                .then(result => {
+                    expect(result).to.be.undefined
+
+                    return User.findById(user.id)
+                })
                 .then(user => {
-                    expect(user.constructor).to.equal(Object)
-                    expect(user.name).to.equal('Papa Gayo')
-                    expect(user.username).to.equal('papagayo')
-                    expect(user.password).to.be.undefined
-                    expect(user.id).to.be.undefined
+                    expect(user.name).to.equal('Pepe Gayo')
+                    expect(user.age).to.equal(26)
+                    expect(user.email).to.equal('pepe@gayo.com')
+                    expect(user.phone).to.equal('+34123123123')
                 })
         )
 
-        it('fails on incorrect id', () => {
+        it('fails on incorrect user id', () => {
             const wrongId = new ObjectId().toString()
 
-            retrieveUser(wrongId)
-                .then(() => {
+            return updateUser(wrongId, 'Pepe Gayo', 26, 'pepe@gayo.com', '+34123123123')
+                .then(result => {
                     throw new Error('should not reach this point')
                 })
                 .catch(error => {
@@ -44,11 +48,11 @@ describe('retrieveUser', () => {
     })
 
     describe('when user does not exist', () => {
-        it('fails on user id from non-existing user', () => {
+        it('fails on unexisting user id', () => {
             const unexistingUserId = new ObjectId().toString()
 
-            retrieveUser(unexistingUserId)
-                .then(() => {
+            return updateUser(unexistingUserId, 'Pepe Gayo', 26, 'pepe@gayo.com', '+34123123123')
+                .then(result => {
                     throw new Error('should not reach this point')
                 })
                 .catch(error => {

@@ -1,51 +1,30 @@
-const { validateStringNotEmptyNoSpaces, validateFunction } = require('../validators')
-const { access, readdir, readFile } = require('fs')
+const { User, Note } = require('../models')
 const { NotFoundError } = require('../errors')
-const { Note } = require('../models')
+const { validateStringNotEmptyNoSpaces } = require('../validators')
 
-function retrieveNotes(userId, callback) {
-    validateStringNotEmptyNoSpaces(userId)
-    validateFunction(callback, 'callback')
+function retrieveNotes(userId) {
+    validateStringNotEmptyNoSpaces(userId, 'user id')
 
-    access(`./db/users/${userId}.json`, error => {
-        if (error) return callback(new NotFoundError(`user with id ${userId} not found`))
+    return User.findById(userId).lean()
+        .then(user => {
+            if (!user)
+                throw new NotFoundError(`user with id ${userId} does not exist`)
 
-        readdir('./db/notes', (error, files) => {
-            if (error) return callback(error)
-
-            const notes = []
-
-            if (!files.length)
-                callback(null, notes)
-            else {
-                let count = 0, _error
-
-                files.forEach(file => {
-                    readFile(`./db/notes/${file}`, 'utf8', (error, json) => {
-                        if (!_error) {
-                            if (error) return callback(_error = error)
-
-                            count++
-
-                            const note = Note.fromJson(json)
-
-                            if (note.user === userId)
-                                notes.push(note)
-
-                            if (count === files.length) {
-                                notes.sort((note1, note2) => {
-                                    return note1.date - note2.date
-                                })
-
-                                callback(null, notes)
-                            }
-                        }
-                    })
-                })
-            }
-
+            return Note.find({ user: userId }).lean()
         })
-    })
+        .then(notes => {
+            notes.forEach(note => {
+                note.id = note._id.toString()
+                delete note._id
+
+                delete note.__v
+
+                delete note.user
+            })
+
+            return notes
+        })
+
 }
 
 module.exports = retrieveNotes

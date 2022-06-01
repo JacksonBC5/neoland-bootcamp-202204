@@ -1,68 +1,97 @@
-const { writeFile } = require('fs')
+const { connect, disconnect, Types: { ObjectId } } = require('mongoose')
+const { User, Note } = require('../models')
+const { NotFoundError } = require('../errors')
 const retrieveNotes = require('./retrieveNotes')
 const { expect } = require('chai')
-const { User, Note } = require('../models')
-const { createId, deleteFiles } = require('../utils')
-const { NotFoundError } = require('../errors')
 
 describe('retrieveNotes', () => {
-    it('succeeds on existing user and has notes', done => {
-        deleteFiles('./db/users', error => {
-            if (error) return done(error)
+    before(() => connect('mongodb://localhost:27017/notes-db-test'))
 
-            deleteFiles('./db/notes', error => {
-                if (error) return done(error)
+    beforeEach(() => Promise.all([User.deleteMany(), Note.deleteMany()]))
 
-                const user = new User('Maria Doe', 'mariadoe', '123123123')
+    describe('when user already exists', () => {
+        let user
 
-                const json = JSON.stringify(user)
+        beforeEach(() => {
+            user = new User({ name: 'Papa Gayo', username: 'papagayo', password: '123123123' })
 
-                const userId = createId()
+            return user.save()
 
-                writeFile(`./db/users/${userId}.json`, json, error => {
-                    if (error) return done(error)
+            // return User.create({ name: 'Papa Gayo', username: 'papagayo', password: '123123123' })
+        })
+        // .then(_user => user = _user)
 
-                    const texts = ['note 1', 'note 2', 'note 3']
+        describe('when user already has notes', () => {
+            let note1, note2, note3, allNotes
 
-                    let count = 0, _error
+            beforeEach(() => {
+                note1 = new Note({ user: user.id, text: 'note 1' })
+                note2 = new Note({ user: user.id, text: 'note 2' })
+                note3 = new Note({ user: user.id, text: 'note 3' })
 
-                    texts.forEach(text => {
-                        const noteId = createId()
-                        
-                        const note = new Note(noteId, userId, text)
+                return Promise.all([note1.save(), note2.save(), note3.save()])
+                    .then(notes => allNotes = notes)
+            })
 
-                        const json = JSON.stringify(note)
+            it('succeeds on correct user data', () =>
+                retrieveNotes(user.id)
+                    .then(notes => {
+                        expect(notes).to.be.instanceOf(Array)
 
-                        writeFile(`./db/notes/${noteId}.json`, json, error => {
-                            if (!_error) {
-                                if (error) return done(_error = error)
+                        expect(notes).to.have.lengthOf(3)
 
-                                count++
+                        notes.forEach(note => {
+                            const found = allNotes.some(_note => {
+                                return _note.id === note.id && _note.text === note.text
+                            })
 
-                                if (count === texts.length) {
-                                    retrieveNotes(userId, (error, notes) => {
-                                        expect(error).to.be.null
-
-                                        expect(notes).to.exist
-                                        expect(notes).to.be.instanceOf(Array)
-
-                                        notes.forEach(note => {
-                                            expect(note.id).to.be.a('string')
-                                            expect(note.user).to.equal(userId)
-                                            expect(texts.includes(note.text)).to.be.true
-                                            expect(note.date).to.be.instanceOf(Date)
-                                        })
-
-                                        done()
-                                    })
-                                }
-                            }
+                            expect(found).to.be.true
                         })
                     })
+            )
+        })
+
+        describe('when user has no notes', () => {
+            it('succeeds on correct user data', () =>
+                retrieveNotes(user.id)
+                    .then(notes => {
+                        expect(notes).to.be.instanceOf(Array)
+
+                        expect(notes).to.have.lengthOf(0)
+                    })
+            )
+        })
+
+        it('fails on incorrect user id', () => {
+            const wrongId = new ObjectId().toString()
+
+            return retrieveNotes(wrongId)
+                .then(() => {
+                    throw new Error('should not reach this point')
                 })
-            })
+                .catch(error => {
+                    expect(error).to.be.instanceOf(NotFoundError)
+                    expect(error.message).to.equal(`user with id ${wrongId} does not exist`)
+                })
         })
     })
 
-    // TODO unhappy test cases
+    describe('when user does not exist', () => {
+        it('fails on unexisting user id', () => {
+            const unexistingUserId = new ObjectId().toString()
+
+            return retrieveNotes(unexistingUserId)
+                .then(() => {
+                    throw new Error('should not reach this point')
+                })
+                .catch(error => {
+                    expect(error).to.be.instanceOf(NotFoundError)
+                    expect(error.message).to.equal(`user with id ${unexistingUserId} does not exist`)
+                })
+        })
+    })
+
+    afterEach(() => User.deleteMany())
+
+    after(() => disconnect())
 })

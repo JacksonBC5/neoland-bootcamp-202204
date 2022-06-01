@@ -1,197 +1,68 @@
-const { readdir, unlink, writeFile } = require('fs')
+const { connect, disconnect } = require('mongoose')
+const { User } = require('../models')
+const { AuthError } = require('../errors')
 const authenticateUser = require('./authenticateUser')
 const { expect } = require('chai')
-const { User } = require('../models')
-const { createId } = require('../utils')
-const { AuthError } = require('../errors')
 
 describe('authenticateUser', () => {
-    it('succeeds on existing user and correct credentials', done => {
-        readdir(`./db/users`, (error, files) => {
-            if (error) return done(error)
+    before(() => connect('mongodb://localhost:27017/notes-db-test'))
 
-            let count = 0, _error
+    beforeEach(() => User.deleteMany())
 
-            if (files.length)
-                files.forEach(file => {
-                    unlink(`./db/users/${file}`, error => {
-                        if (!_error) {
-                            if (error) return done(_error = error)
+    describe('when user already exists', () => {
+        let user
 
-                            count++
+        beforeEach(() => {
+            user = new User({ name: 'Papa Gayo', username: 'papagayo', password: '123123123' })
 
-                            if (count == files.length) {
-                                const user = new User('Maria Doe', 'mariadoe', '123123123')
-
-                                const json = JSON.stringify(user)
-
-                                const _userId = createId()
-
-                                writeFile(`./db/users/${_userId}.json`, json, error => {
-                                    if (error) return done(error)
-
-                                    authenticateUser('mariadoe', '123123123', (error, userId) => {
-                                        expect(error).to.be.null
-
-                                        expect(userId).to.be.a('string')
-                                        expect(userId).to.equal(_userId)
-
-                                        done()
-                                    })
-                                })
-                            }
-                        }
-                    })
-                })
-            else {
-                const user = new User('Maria Doe', 'mariadoe', '123123123')
-
-                const json = JSON.stringify(user)
-
-                const _userId = createId()
-
-                writeFile(`./db/users/${_userId}.json`, json, error => {
-                    if (error) return done(error)
-
-                    authenticateUser('mariadoe', '123123123', (error, userId) => {
-                        expect(error).to.be.null
-
-                        expect(userId).to.be.a('string')
-                        expect(userId).to.equal(_userId)
-
-                        done()
-                    })
-                })
-            }
-
+            return user.save()
         })
+
+        it('succeeds on correct credentials', () =>
+            authenticateUser('papagayo', '123123123')
+                .then(userId => {
+                    expect(userId).to.be.a('string')
+                    expect(userId).to.equal(user.id)
+                })
+        )
+
+        it('fails on incorrect password', () =>
+            authenticateUser('papagayo', '123123123-wrong')
+                .then(() => {
+                    throw new Error('should not reach this point')
+                })
+                .catch(error => {
+                    expect(error).to.be.instanceOf(AuthError)
+                    expect(error.message).to.equal('wrong credentials')
+                })
+        )
+
+        it('fails on incorrect username', () =>
+            authenticateUser('papagayo-wrong', '123123123')
+                .then(() => {
+                    throw new Error('should not reach this point')
+                })
+                .catch(error => {
+                    expect(error).to.be.instanceOf(AuthError)
+                    expect(error.message).to.equal('wrong credentials')
+                })
+        )
     })
 
-    it('fails on existing user and incorrect password', done => {
-        readdir(`./db/users`, (error, files) => {
-            if (error) return done(error)
-
-            let count = 0, _error
-
-            if (files.length)
-                files.forEach(file => {
-                    unlink(`./db/users/${file}`, error => {
-                        if (!_error) {
-                            if (error) return done(_error = error)
-
-                            count++
-
-                            if (count == files.length) {
-                                const user = new User('Maria Doe', 'mariadoe', '123123123')
-
-                                const json = JSON.stringify(user)
-
-                                const _userId = createId()
-
-                                writeFile(`./db/users/${_userId}.json`, json, error => {
-                                    if (error) return done(error)
-
-                                    authenticateUser('mariadoe', '123123123_', (error, userId) => {
-                                        expect(error).to.be.exist
-                                        expect(error).to.be.instanceOf(AuthError)
-                                        expect(error.message).to.equal('wrong credentials')
-
-                                        expect(userId).to.be.undefined
-
-                                        done()
-                                    })
-                                })
-                            }
-                        }
-                    })
+    describe('when user does not exist', () => {
+        it('fails on credentials from non-existing user', () =>
+            authenticateUser('papagayo', '123123123')
+                .then(() => {
+                    throw new Error('should not reach this point')
                 })
-            else {
-                const user = new User('Maria Doe', 'mariadoe', '123123123')
-
-                const json = JSON.stringify(user)
-
-                const _userId = createId()
-
-                writeFile(`./db/users/${_userId}.json`, json, error => {
-                    if (error) return done(error)
-
-                    authenticateUser('mariadoe', '123123123_', (error, userId) => {
-                        expect(error).to.be.exist
-                        expect(error).to.be.instanceOf(AuthError)
-                        expect(error.message).to.equal('wrong credentials')
-
-                        expect(userId).to.be.undefined
-
-                        done()
-                    })
+                .catch(error => {
+                    expect(error).to.be.instanceOf(AuthError)
+                    expect(error.message).to.equal('wrong credentials')
                 })
-            }
-
-        })
+        )
     })
 
-    it('fails on existing user and incorrect username', done => {
-        readdir(`./db/users`, (error, files) => {
-            if (error) return done(error)
+    afterEach(() => User.deleteMany())
 
-            let count = 0, _error
-
-            if (files.length)
-                files.forEach(file => {
-                    unlink(`./db/users/${file}`, error => {
-                        if (!_error) {
-                            if (error) return done(_error = error)
-
-                            count++
-
-                            if (count == files.length) {
-                                const user = new User('Maria Doe', 'mariadoe', '123123123')
-
-                                const json = JSON.stringify(user)
-
-                                const _userId = createId()
-
-                                writeFile(`./db/users/${_userId}.json`, json, error => {
-                                    if (error) return done(error)
-
-                                    authenticateUser('mariadoe_', '123123123', (error, userId) => {
-                                        expect(error).to.be.exist
-                                        expect(error).to.be.instanceOf(AuthError)
-                                        expect(error.message).to.equal('wrong credentials')
-
-                                        expect(userId).to.be.undefined
-
-                                        done()
-                                    })
-                                })
-                            }
-                        }
-                    })
-                })
-            else {
-                const user = new User('Maria Doe', 'mariadoe', '123123123')
-
-                const json = JSON.stringify(user)
-
-                const _userId = createId()
-
-                writeFile(`./db/users/${_userId}.json`, json, error => {
-                    if (error) return done(error)
-
-                    authenticateUser('mariadoe_', '123123123', (error, userId) => {
-                        expect(error).to.be.exist
-                        expect(error).to.be.instanceOf(AuthError)
-                        expect(error.message).to.equal('wrong credentials')
-
-                        expect(userId).to.be.undefined
-
-                        done()
-                    })
-                })
-            }
-
-        })
-    })
-
-    // TODO unhappy test cases
+    after(() => disconnect())
 })
