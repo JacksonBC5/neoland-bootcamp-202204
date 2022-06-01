@@ -1,3 +1,5 @@
+const handleUpdateNote = require('./handleUpdateNote');
+
 module.exports = {
     handleRegisterUser: require('./handleRegisterUser'),
     handleAuthenticateUser: require('./handleAuthenticateUser'),
@@ -5,6 +7,7 @@ module.exports = {
     handleUpdateUser: require('./handleUpdateUser'),
 
     handleCreateNote: require('./handleCreateNote'),
-    handleRetrieveNotes: require('./handleRetrieveNotes')
+    handleRetrieveNotes: require('./handleRetrieveNotes'),
+    handleUpdateNote: require('./handleUpdateNote')
 
 }

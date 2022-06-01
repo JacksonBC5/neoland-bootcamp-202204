@@ -17,7 +17,8 @@ const {
     handleUpdateUser,
 
     handleCreateNote,
-    handleRetrieveNotes
+    handleRetrieveNotes,
+    handleUpdateNote
 
 
 } = require('./handlers')
@@ -42,6 +43,7 @@ const { connect, disconnect } = require('mongoose')
         
         routes.post('/notes', jsonBodyParser, handleCreateNote)
         routes.get('/notes', jsonBodyParser, handleRetrieveNotes)
+        routes.patch('/notes/:noteId', jsonBodyParser, handleUpdateNote)
 
 
 
